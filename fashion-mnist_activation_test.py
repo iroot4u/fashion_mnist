@@ -12,7 +12,7 @@ import keras;
 print(keras.__version__);
 
 # In[4]:
-sample_size = 60000
+sample_size = 1000
 sampleN_train = sample_size
 sampleN_test = int(sample_size * .1)
 
@@ -67,7 +67,7 @@ from keras.layers import Conv2D, MaxPooling2D
 # In[17]:
 # Define contant parameters for this test
 batch_size = 32
-nb_epoch = 20
+nb_epoch = 3
 optimizer = 'adam'
 metrics = ['accuracy']
 loss = 'categorical_crossentropy'
@@ -82,7 +82,7 @@ for i, f in enumerate(activation_func):
     name = "my_model_%d_%s_%d_%d" % (sample_size, f, batch_size, nb_epoch)
 
     model = Sequential()
-    model.add(Conv2D(32, kernel_size=(3, 3), strides=(1, 1), activation='f', input_shape=(28, 28, 1)))
+    model.add(Conv2D(32, kernel_size=(3, 3), strides=(1, 1), activation=f, input_shape=(28, 28, 1)))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(Dropout(0.25))
     model.add(Conv2D(64, (3, 3), activation=f))

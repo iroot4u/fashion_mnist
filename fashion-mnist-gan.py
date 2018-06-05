@@ -1,12 +1,12 @@
 from __future__ import print_function, division
 
-from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
+from keras.datasets import fashion_mnist
 
 import matplotlib.pyplot as plt
 
@@ -21,11 +21,7 @@ import numpy as np
 
 # In[92]:
 
-
-from keras.datasets import fashion_mnist
-
 (x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
-
 
 # In[93]:
 
@@ -125,45 +121,6 @@ from keras.layers import Conv2D, MaxPooling2D
 
 
 
-### Generative Adversarial Network
-## In a GAN, the main goal is for the 
-# generative network to be ablbe to produce
-# images that can be mistaken as real images.
-img_rows = 28
-img_cols = 28
-channels = 1
-img_shape = (img_rows, img_cols, channels)
-latent_dim = 100
-
-# Adam is an optimization method for 
-# achieving best fit that works similarly to 
-# stochastic gradient descent
-optimizer = Adam(0.0002, 0.5)
-
-# Build and compile the discriminator
-discriminator = build_discriminator()
-discriminator.compile(loss='binary_crossentropy',optimizer=optimizer,metrics=['accuracy'])
-
-# Build the generator
-generator = build_generator()
-
-# The generator takes noise as input and generates imgs
-z = Input(shape=(100,))
-img = generator(z)
-
-# For the combined model we will only train the generator
-discriminator.trainable = False
-
-# The discriminator takes generated images as input and determines validity
-validity = discriminator(img)
-
-# The combined model  (stacked generator and discriminator)
-# Trains the generator to fool the discriminator
-combined = Model(z, validity)
-combined.compile(loss='binary_crossentropy', optimizer=optimizer)
-
-
-
 ## First construct the discriminator 
 # The discriminator is the network that classifies
 # The input images provided by the generator
@@ -209,14 +166,18 @@ def build_generator(latent_dim, img_shape):
     return Model(noise, img)
 
 
-def train(self, epochs, batch_size=128, sample_interval=50):
-
-
+def train(
+    generator,
+    descriminator,
+    combined,
+    epochs,
+    batch_size=128, 
+    sample_interval=50
+):
     # Rescales all inputs to bbe on a 0 to 1 scale
     X_train = x_train / 127.5 - 1.
     X_train = np.expand_dims(x_train, axis=3)
-
-    
+    print(X_train)
 
     # Adversarial ground truths
     valid = np.ones((batch_size, 1))
@@ -235,11 +196,11 @@ def train(self, epochs, batch_size=128, sample_interval=50):
         noise = np.random.normal(0, 1, (batch_size, 100))
 
         # Generate a batch of new images
-        gen_imgs = self.generator.predict(noise)
+        gen_imgs = generator.predict(noise)
 
         # Train the discriminator
-        d_loss_real = self.discriminator.train_on_batch(imgs, valid)
-        d_loss_fake = self.discriminator.train_on_batch(gen_imgs, fake)
+        d_loss_real = discriminator.train_on_batch(imgs, valid)
+        d_loss_fake = discriminator.train_on_batch(gen_imgs, fake)
         d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
         # ---------------------
@@ -249,22 +210,20 @@ def train(self, epochs, batch_size=128, sample_interval=50):
         noise = np.random.normal(0, 1, (batch_size, 100))
 
         # Train the generator (to have the discriminator label samples as valid)
-        g_loss = self.combined.train_on_batch(noise, valid)
+        g_loss = combined.train_on_batch(noise, valid)
 
         # Plot the progress
         print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
         # If at save interval => save generated image samples
         if epoch % sample_interval == 0:
-            self.sample_images(epoch)
+            sample_images(generator, epoch)
 
 
-
-
-def sample_images(self, epoch):
+def sample_images(generator, epoch):
     r, c = 5, 5
     noise = np.random.normal(0, 1, (r * c, 100))
-    gen_imgs = self.generator.predict(noise)
+    gen_imgs = generator.predict(noise)
 
     # Rescale images 0 - 1
     gen_imgs = 0.5 * gen_imgs + 0.5
@@ -279,40 +238,49 @@ def sample_images(self, epoch):
     fig.savefig("images/%d.png" % epoch)
     plt.close()
 
+### Generative Adversarial Network
+## In a GAN, the main goal is for the 
+# generative network to be ablbe to produce
+# images that can be mistaken as real images.
+img_rows = 28
+img_cols = 28
+channels = 1
+img_shape = (img_rows, img_cols, channels)
+latent_dim = 100
+
+# Adam is an optimization method for 
+# achieving best fit that works similarly to 
+# stochastic gradient descent
+optimizer = Adam(0.0002, 0.5)
+
+# Build and compile the discriminator
+discriminator = build_discriminator(img_shape)
+discriminator.compile(loss='binary_crossentropy',optimizer=optimizer,metrics=['accuracy'])
+
+# Build the generator
+generator = build_generator(latent_dim, img_shape)
+
+# The generator takes noise as input and generates imgs
+z = Input(shape=(100,))
+img = generator(z)
+
+# For the combined model we will only train the generator
+discriminator.trainable = False
+
+# The discriminator takes generated images as input and determines validity
+validity = discriminator(img)
+
+# The combined model  (stacked generator and discriminator)
+# Trains the generator to fool the discriminator
+combined = Model(z, validity)
+combined.compile(loss='binary_crossentropy', optimizer=optimizer)
 
 
-# In[108]:
-
-
-model.compile(loss='categorical_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
-
-
-# In[109]:
-
-
-model.fit(x_train, y_train, 
-          batch_size=32, nb_epoch=10, verbose=1)
-
-
-# In[110]:
-
-
-score = model.evaluate(x_test, y_test, verbose=0)
-
-
-# In[111]:
-
-
-score
-
-
-# In[112]:
-
-
-model.save('my_model.h5')
-
-
-  
-
+train(
+    generator,
+    discriminator,
+    combined,
+    epochs=2,
+    batch_size=128, 
+    sample_interval=50
+)

@@ -1,125 +1,15 @@
 from __future__ import print_function, division
 
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D
+from keras.layers import BatchNormalization, Activation, ZeroPadding2D, Conv2D, MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.datasets import fashion_mnist
-
 import matplotlib.pyplot as plt
-
 import sys
-
 import numpy as np
-
-
-
-
-# coding: utf-8
-
-# In[92]:
-
-(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
-
-# In[93]:
-
-
-x_train.shape
-
-
-# In[94]:
-
-
-import keras; print(keras.__version__);
-
-
-# In[95]:
-
-
-import numpy as np
-np.random.seed(123) 
-
-
-# In[96]:
-
-
-from matplotlib import pyplot as plt
-plt.imshow(x_train[0])
-
-
-# In[97]:
-
-
-x_train = x_train.reshape(x_train.shape[0], 28, 28, 1).astype('float32')
-x_test = x_test.reshape(x_test.shape[0], 28, 28, 1).astype('float32')
-
-
-# In[98]:
-
-
-# x_train = x_train.astype('float32')
-# x_test = x_test.astype('float32')
-
-
-# In[99]:
-
-
-x_train.shape
-
-
-# In[100]:
-
-
-x_train /= 255
-x_test /= 255
-
-
-# In[101]:
-
-
-# y_train = y_train.astype('str')
-# y_test = y_test.astype('str')
-
-
-# In[102]:
-
-
-y_train[:10]
-
-
-# In[103]:
-
-
-from keras.utils import np_utils
-y_train = np_utils.to_categorical(y_train, 10)
-y_test = np_utils.to_categorical(y_test, 10)
-
-
-# In[104]:
-
-
-y_train[:10]
-
-
-# In[105]:
-
-
-y_train[:10]
-
-
-# In[106]:
-
-
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-
-
-# In[107]:
-
-
 
 ## First construct the discriminator 
 # The discriminator is the network that classifies
@@ -127,14 +17,16 @@ from keras.layers import Conv2D, MaxPooling2D
 # It is a standard convolutional neural network.
 def build_discriminator(img_shape):
     model = Sequential()
-    model.add(Flatten(input_shape=img_shape))
-    model.add(Dense(512))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(Dense(256))
-    model.add(LeakyReLU(alpha=0.2))
+    model.add(Conv2D(32, kernel_size=(3, 3), strides=(1, 1), activation='relu', input_shape=img_shape))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    model.add(Dropout(0.25))
+    model.add(Conv2D(64, (3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.5))
+    model.add(Flatten())
+    model.add(Dense(1000, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
     model.summary()
-
     img = Input(shape=img_shape)
     validity = model(img)
 
@@ -174,10 +66,9 @@ def train(
     batch_size=128, 
     sample_interval=50
 ):
-    # Rescales all inputs to bbe on a 0 to 1 scale
+    # Rescales all inputs to be on a 0 to 1 scale
     X_train = x_train / 127.5 - 1.
-    X_train = np.expand_dims(x_train, axis=3)
-    print(X_train)
+    print(X_train[0])
 
     # Adversarial ground truths
     valid = np.ones((batch_size, 1))
@@ -197,7 +88,6 @@ def train(
 
         # Generate a batch of new images
         gen_imgs = generator.predict(noise)
-
         # Train the discriminator
         d_loss_real = discriminator.train_on_batch(imgs, valid)
         d_loss_fake = discriminator.train_on_batch(gen_imgs, fake)
@@ -208,7 +98,6 @@ def train(
         # ---------------------
 
         noise = np.random.normal(0, 1, (batch_size, 100))
-
         # Train the generator (to have the discriminator label samples as valid)
         g_loss = combined.train_on_batch(noise, valid)
 
@@ -248,6 +137,13 @@ channels = 1
 img_shape = (img_rows, img_cols, channels)
 latent_dim = 100
 
+# Format the training data
+
+(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+print(x_train.shape)
+x_train = x_train.reshape(x_train.shape[0], 28, 28, 1).astype('float32')
+print(x_train.shape)
+
 # Adam is an optimization method for 
 # achieving best fit that works similarly to 
 # stochastic gradient descent
@@ -280,7 +176,7 @@ train(
     generator,
     discriminator,
     combined,
-    epochs=2,
+    epochs=30000,
     batch_size=128, 
-    sample_interval=50
+    sample_interval=5
 )

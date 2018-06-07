@@ -25,7 +25,7 @@ from matplotlib import pyplot as plt
 # Uncomment in python editors so plot will display
 plt.interactive(False)
 
-plt.imshow(x_train[0])
+#plt.imshow(x_train[0])
 
 x_train = x_train.reshape(x_train.shape[0], 28, 28, 1).astype('float32')
 x_test = x_test.reshape(x_test.shape[0], 28, 28, 1).astype('float32')
@@ -56,9 +56,19 @@ nb_epoch = 20
 optimizer = 'adam'
 metrics = ['accuracy']
 loss = 'categorical_crossentropy'
+classes = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
 
 # Define Variable parameters for test
-activation_func = ['softmax', 'softplus', 'softsign', 'relu', 'tanh', 'sigmoid', 'hard_sigmoid', 'linear']
+activation_func = [
+                   # 'softmax',
+                   # 'softplus',
+                   # 'softsign',
+                    'relu',
+                   # 'tanh',
+                   # 'sigmoid',
+                   # 'hard_sigmoid',
+                   # 'linear'
+                  ]
 
 # filepath = ['fashion_mnist/my_model_60000_hard_sigmoid_32_20',
 #             'fashion_mnist/my_model_60000_linear_32_20',
@@ -89,9 +99,8 @@ for i, f in enumerate(activation_func):
                   metrics=metrics)
 
     # LOAD SAVED MODEL(S) WEIGHTS AND APPLY TO COMPILED .model
-    filepath = 'fashion_mnist/%s' % name
+    filepath = '/Users/cookie/Documents/Class/Spark/Final/fashion_mnist/models/%s' % name
     model.load_weights(filepath)
-
 
     # EVALUATE MODELS
     # In[110]:
@@ -103,4 +112,34 @@ for i, f in enumerate(activation_func):
     # Could add some code to predict on a new sample
     # model.precict(new_sample)
 
+    # Print visual of model layers
+    #import keras_sequential_ascii as ksq
+    #ksq.sequential_model_to_ascii_printout(cnn_n)
+    from keras_sequential_ascii import keras2ascii
+    keras2ascii(model)
 
+    # Confusion Matrix
+    from sklearn.metrics import classification_report, confusion_matrix
+
+    Y_pred = model.predict(x_test, verbose=2)
+    y_pred = np.argmax(Y_pred, axis=1)
+
+    for ix in range(10):
+        print(ix, confusion_matrix(np.argmax(y_test, axis=1), y_pred)[ix].sum())
+    cm = confusion_matrix(np.argmax(y_test, axis=1), y_pred)
+    print(cm)
+
+    # Visualizing of confusion matrix
+    import seaborn as sn
+    import pandas as pd
+
+    df_cm = pd.DataFrame(cm, range(10),
+                         range(10))
+                         #columns=['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'])
+    plt.figure(figsize=(10, 7))
+    sn.set(font_scale=1.4)  # for label size
+    sn.heatmap(df_cm, annot=True, annot_kws={"size": 12}, xticklabels=True, yticklabels=True)  # font size
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.title(f)
+    plt.show()

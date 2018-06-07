@@ -12,14 +12,14 @@ import keras;
 print(keras.__version__);
 
 # In[4]:
-sample_size = 1000
-sampleN_train = sample_size
-sampleN_test = int(sample_size * .1)
+sample_size = 60000
+# sampleN_train = sample_size
+# sampleN_test = int(sample_size * .1)
 
-x_train = x_train[0:sampleN_train]
-x_test = x_test[0:sampleN_test]
-y_train = y_train[0:sampleN_train]
-y_test = y_test[0:sampleN_test]
+# x_train = x_train[0:sampleN_train]
+# x_test = x_test[0:sampleN_test]
+# y_train = y_train[0:sampleN_train]
+# y_test = y_test[0:sampleN_test]
 
 # In[5]:
 import numpy as np
@@ -67,7 +67,7 @@ from keras.layers import Conv2D, MaxPooling2D
 # In[17]:
 # Define contant parameters for this test
 batch_size = 32
-nb_epoch = 3
+nb_epoch = 20
 optimizer = 'adam'
 metrics = ['accuracy']
 loss = 'categorical_crossentropy'
@@ -100,9 +100,13 @@ for i, f in enumerate(activation_func):
     model.compile(loss=loss,
                   optimizer=optimizer,
                   metrics=metrics)
+
+    filepath = '/Users/cookie/Documents/Class/Spark/Final/fashion_mnist/%s' % name
+    model.load_weights(filepath)
+
     # In[109]:
     history = model.fit(x_train, y_train,
-                        batch_size=batch_size, nb_epoch=nb_epoch, verbose=1)
+                       batch_size=batch_size, nb_epoch=nb_epoch, verbose=1)
     # In[110]:
     score = model.evaluate(x_test, y_test, verbose=0)
 
@@ -110,7 +114,7 @@ for i, f in enumerate(activation_func):
     print "%s %.5f" % (f, score[1])
 
     # plot metrics
-    figure.add_subplot(2, 4, i + 1)
+    figure.add_subplot(4, 2, i + 1)
     plt.plot(history.history['acc'])
     plt.title(f)
 
@@ -119,7 +123,7 @@ for i, f in enumerate(activation_func):
     model.save(save_as)
 
 # In[ ]:
-plt.savefig('activation_all_32_20.png')
+plt.savefig('activation_60000_32_20.png')
 plt.show()
 
 
